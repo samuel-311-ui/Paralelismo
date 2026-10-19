@@ -1,0 +1,555 @@
+<title>Carrera CPU vs GPU</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: banco de pruebas — controles arriba, la "tarea" (A×B) como zoom, tres carriles de carrera lado a lado, curva de escalado y glosario al final */
+:root{
+  --bg:#f3f5f6; --panel:#ffffff; --ink:#111820; --muted:#566370; --line:#d6dde2; --soft:#e8edf0;
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a;
+  --hl:#f2c94c33; --hl-strong:#d99a00;
+  --f-display:"Chakra Petch","Segoe UI",system-ui,sans-serif;
+  --f-body:"Atkinson Hyperlegible","Segoe UI",system-ui,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0e1215; --panel:#161c20; --ink:#e7ecef; --muted:#97a3ad; --line:#29323a; --soft:#1f272d;
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --hl:#f2c94c26; --hl-strong:#f2c94c; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0e1215; --panel:#161c20; --ink:#e7ecef; --muted:#97a3ad; --line:#29323a; --soft:#1f272d;
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --hl:#f2c94c26; --hl-strong:#f2c94c; color-scheme:dark}
+
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5}
+.wrap{max-width:1180px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:28px 48px;display:flex;flex-direction:column;gap:22px}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;margin:0;line-height:1.15}
+h1{font-size:clamp(28px,4.5vw,42px);font-weight:700;letter-spacing:.01em}
+h2{font-size:20px;font-weight:600}
+h3{font-size:16px;font-weight:600}
+p{margin:0}
+.eyebrow{font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.lead{max-width:68ch;color:var(--muted);font-size:16px}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+header{display:flex;flex-direction:column;gap:8px}
+
+/* Guía */
+.guide{display:flex;flex-direction:column;gap:12px}
+.idea{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--ink);border-radius:10px;padding:14px 16px;font-size:16px;max-width:none}
+.steps{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:4px;color:var(--muted)}
+.steps b{color:var(--ink)}
+.exps{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px}
+.exp{text-align:left;font:inherit;color:var(--ink);background:var(--panel);border:1.5px solid var(--line);border-radius:10px;padding:12px 14px;cursor:pointer;display:flex;flex-direction:column;gap:3px}
+.exp:hover{border-color:var(--ink)}
+.exp[aria-pressed="true"]{border-color:var(--ink);background:var(--soft)}
+.exp b{font-family:var(--f-display);font-size:16px}
+.exp span:last-child{color:var(--muted);font-size:14px}
+.sec-head{display:flex;flex-direction:column;gap:4px}
+.how{font-size:13px;color:var(--ink);background:var(--soft);border-radius:6px;padding:6px 8px}
+.keyrow{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:13px;color:var(--muted)}
+.keyrow span{display:inline-flex;align-items:center;gap:6px}
+.sw{width:14px;height:14px;border-radius:3px;display:inline-block;background:var(--soft)}
+.sw.done{background:var(--ink)}
+.sw.now{background:var(--soft);outline:2px solid var(--ink);outline-offset:-2px}
+.concl{display:block;margin-top:6px;font-weight:700}
+/* Controles */
+.controls{display:flex;flex-wrap:wrap;gap:14px 22px;align-items:flex-end;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.ctl{display:flex;flex-direction:column;gap:6px}
+.ctl > span{font-size:12px;color:var(--muted);letter-spacing:.04em;text-transform:uppercase;font-family:var(--f-mono)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:7px;overflow:hidden}
+.seg button{font:600 14px var(--f-mono);background:transparent;color:var(--ink);border:0;padding:7px 12px;cursor:pointer;border-right:1px solid var(--line)}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.chk{display:flex;align-items:center;gap:8px;font-size:14px;padding-bottom:6px;cursor:pointer}
+input[type=range]{width:150px;accent-color:var(--ink)}
+.btns{display:flex;gap:8px;margin-left:auto;flex-wrap:wrap}
+.btn{font:700 14px var(--f-body);border-radius:7px;padding:9px 16px;cursor:pointer;border:1px solid var(--ink);background:transparent;color:var(--ink)}
+.btn.primary{background:var(--ink);color:var(--bg)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--hl-strong);outline-offset:2px}
+
+/* Tarea */
+.task{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);gap:18px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px}
+.task-text{display:flex;flex-direction:column;gap:8px;min-width:0}
+.mats{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center}
+.mat{display:flex;flex-direction:column;align-items:center;gap:4px}
+.mat canvas{width:150px;height:150px;max-width:100%}
+.mat small{font-family:var(--f-mono);color:var(--muted)}
+.op{font:600 22px var(--f-display);color:var(--muted)}
+.formula{font-family:var(--f-mono);font-size:13px;background:var(--soft);border-radius:7px;padding:8px 10px;overflow-x:auto;white-space:nowrap}
+.formula .pend{color:var(--muted);opacity:.55}
+.formula b{color:var(--ink)}
+
+/* Carriles */
+.lanes{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}
+.lane{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:10px;min-width:0;position:relative}
+.lane::before{content:"";position:absolute;left:0;right:0;top:0;height:4px;border-radius:10px 10px 0 0;background:var(--c)}
+.lane-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.lane-head .spec{font-size:13px;color:var(--muted)}
+.badge{font:700 12px var(--f-mono);padding:2px 8px;border-radius:99px;border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+.badge.win{background:var(--c);border-color:var(--c);color:#fff}
+.cores{min-height:64px;display:flex;align-items:center}
+.cpu-cores{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;width:100%}
+.core{border:1.5px solid var(--line);border-radius:6px;padding:6px 4px;text-align:center;font:600 11px var(--f-mono);color:var(--muted);transition:background .15s}
+.core.busy{border-color:var(--c);background:color-mix(in srgb,var(--c) 18%,transparent);color:var(--ink)}
+.core .lbl{display:block;font-size:10px;opacity:.75}
+.gpu-cores{width:100%}
+.gpu-cores canvas{width:100%;height:64px;display:block}
+.cgrid canvas{width:100%;aspect-ratio:1/1;max-width:100%;display:block}
+.phase{font-size:13px;color:var(--muted);min-height:2.6em}
+.phase b{color:var(--ink)}
+.bar{height:8px;background:var(--soft);border-radius:99px;overflow:hidden}
+.bar > i{display:block;height:100%;width:0;background:var(--c);border-radius:99px}
+.time{display:flex;justify-content:space-between;font-size:13px;color:var(--muted)}
+.time .mono{color:var(--ink);font-weight:600}
+.verdict{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 16px;font-size:15px}
+
+/* Curva */
+.chart-box{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:10px;position:relative}
+.chart-box svg{width:100%;height:auto;display:block;overflow:visible}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:13px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:14px;height:3px;border-radius:2px;background:var(--c)}
+.tip{position:absolute;pointer-events:none;background:var(--panel);border:1px solid var(--line);border-radius:7px;padding:7px 10px;font-size:12px;box-shadow:0 4px 14px #0002;min-width:150px}
+.tip div{display:flex;justify-content:space-between;gap:12px}
+.tip i{display:inline-block;width:8px;height:8px;border-radius:2px;background:var(--c);margin-right:5px}
+.axis text{fill:var(--muted);font:11px var(--f-mono)}
+.grid line{stroke:var(--line)}
+
+/* Glosario */
+.gloss{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:18px 24px}
+.gloss div{display:flex;flex-direction:column;gap:4px;min-width:0}
+.gloss p{color:var(--muted);font-size:14px}
+details{font-size:14px;color:var(--muted)}
+details summary{cursor:pointer;color:var(--ink);font-weight:700}
+details ul{margin:8px 0 0;padding-left:20px}
+
+@media (max-width:720px){.task{grid-template-columns:minmax(0,1fr)}.btns{margin-left:0}}
+@media (prefers-reduced-motion:reduce){.core{transition:none}}
+</style>
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow">Módulo 11 · Computación paralela</span>
+    <h1>Carrera CPU vs GPU</h1>
+  </header>
+
+  <section class="guide" aria-label="Cómo usar la simulación">
+    <p class="idea"><b>Idea central:</b> cada núcleo de una GPU es <b>más lento</b> que un núcleo de CPU. La GPU gana solo cuando hay <b>muchas operaciones iguales e independientes</b> para repartir entre sus cientos de núcleos, y cuando el cálculo compensa el tiempo de <b>copiarle los datos</b>.</p>
+    <h2>Cómo usarla</h2>
+    <ol class="steps">
+      <li><b>Elige un experimento.</b> Antes de que termine, predice quién va a ganar.</li>
+      <li><b>Observa los tres carriles</b> (sección 2): cómo reparte el trabajo cada procesador.</li>
+      <li><b>Lee el resultado</b> debajo de la carrera y compáralo con tu predicción.</li>
+    </ol>
+    <div class="exps" id="exps">
+      <button class="exp" data-exp="1" aria-pressed="false"><span class="eyebrow">Experimento 1</span><b>Matriz pequeña · 4×4</b><span>Solo 16 casillas por calcular. ¿Gana la CPU o la GPU?</span></button>
+      <button class="exp" data-exp="2" aria-pressed="false"><span class="eyebrow">Experimento 2</span><b>Matriz grande · 32×32</b><span>1.024 casillas. ¿Cambia el ganador?</span></button>
+      <button class="exp" data-exp="3" aria-pressed="false"><span class="eyebrow">Experimento 3</span><b>Sin copiar datos · 8×8</b><span>¿Qué pasa si los datos ya están en la GPU?</span></button>
+    </div>
+  </section>
+
+
+
+  <section class="task" aria-label="La tarea">
+    <div class="task-text">
+      <h2>1 · Qué se calcula: cada casilla es una fila × una columna</h2>
+      <p class="lead" style="font-size:14px">Cada casilla <span class="mono">C[i][j]</span> se obtiene multiplicando la fila <i>i</i> de A por la columna <i>j</i> de B y sumando. Ninguna casilla depende de otra, así que las <b id="nTasks" class="mono">64</b> casillas se pueden calcular <b>al mismo tiempo</b> si hay suficientes núcleos. Durante la carrera, aquí ves en cámara lenta cómo el núcleo secuencial calcula cada casilla.</p>
+      <div class="formula" id="formula" aria-live="polite"></div>
+    </div>
+    <div class="mats">
+      <div class="mat"><canvas id="cA" width="300" height="300"></canvas><small>A (fila i)</small></div>
+      <span class="op">×</span>
+      <div class="mat"><canvas id="cB" width="300" height="300"></canvas><small>B (columna j)</small></div>
+    </div>
+  </section>
+
+  <div class="sec-head">
+    <h2>2 · La carrera: el mismo trabajo, tres procesadores</h2>
+    <div class="keyrow"><span><i class="sw"></i>casilla pendiente</span><span><i class="sw now"></i>calculándose ahora</span><span><i class="sw done"></i>casilla lista (color del procesador)</span><span>En la CPU, el número indica qué núcleo calculó la casilla.</span></div>
+  </div>
+  <section class="controls" aria-label="Controles de la simulación">
+    <div class="ctl" style="flex-basis:100%"><span>Modo libre: elige tus propios valores</span></div>
+    <div class="ctl"><span>Tamaño de matriz (N×N)</span>
+      <div class="seg" id="segN" role="group" aria-label="Tamaño de matriz">
+        <button data-v="4">4</button><button data-v="8" aria-pressed="true">8</button><button data-v="16">16</button><button data-v="32">32</button>
+      </div></div>
+    <div class="ctl"><span>Núcleos de la CPU</span>
+      <div class="seg" id="segK" role="group" aria-label="Núcleos de la CPU">
+        <button data-v="2">2</button><button data-v="4" aria-pressed="true">4</button><button data-v="8">8</button>
+      </div></div>
+    <div class="ctl"><span>Velocidad <b id="speedLbl" class="mono">×1</b></span>
+      <input id="speed" type="range" min="0" max="6" step="1" value="2" aria-label="Velocidad de la animación"></div>
+    <label class="chk" for="copy"><input id="copy" type="checkbox" checked> Incluir copia de datos a la GPU</label>
+    <div class="btns">
+      <button class="btn primary" id="play">Iniciar</button>
+      <button class="btn" id="finish">Ir al final</button>
+      <button class="btn" id="reset">Reiniciar</button>
+    </div>
+  </section>
+  <section class="lanes" id="lanes" aria-label="Carriles de la carrera"></section>
+
+  <p class="verdict" id="verdict" aria-live="polite">Elige un experimento arriba, o ajusta los controles y pulsa <b>Iniciar</b>.</p>
+
+  <section class="chart-box" aria-label="Tiempo según el tamaño de la matriz">
+    <h2>3 · ¿Cuándo conviene la GPU?</h2>
+    <p class="lead" style="font-size:14px" id="chartNote"></p>
+    <div class="legend" id="legend"></div>
+    <svg id="chart" viewBox="0 0 680 300" role="img" aria-label="Tiempo simulado en ciclos según el tamaño N de la matriz, escala logarítmica"></svg>
+    <div class="tip" id="tip" hidden></div>
+  </section>
+
+  <section aria-label="Conceptos" style="display:flex;flex-direction:column;gap:14px">
+    <h2>Conceptos clave</h2>
+    <div class="gloss">
+      <div><h3>CPU: pocos núcleos potentes</h3><p>Como un equipo de pocos chefs expertos: cada uno resuelve cualquier tarea muy rápido, pero son pocos. Ideal para trabajo variado y con decisiones.</p></div>
+      <div><h3>GPU: miles de núcleos sencillos</h3><p>Como cientos de ayudantes que solo saben hacer una cosa: cada uno es más lento, pero juntos procesan enormes cantidades de datos iguales a la vez.</p></div>
+      <div><h3>Paralelismo de datos</h3><p>La misma operación aplicada a muchos datos independientes. Multiplicar matrices es el ejemplo perfecto: cada casilla de C se calcula por separado.</p></div>
+      <div><h3>Copia de memoria</h3><p>La GPU tiene su propia memoria. Antes de calcular hay que enviarle A y B, y al final devolver C. Con datos pequeños, esta copia cuesta más que el cálculo.</p></div>
+      <div><h3>Latencia vs rendimiento</h3><p>La CPU minimiza cuánto tarda <i>una</i> tarea (latencia). La GPU maximiza cuántas tareas termina por segundo (rendimiento).</p></div>
+      <div><h3>Núcleos ociosos</h3><p>Si hay menos tareas que núcleos, sobran núcleos sin trabajo. Con N=8 solo hay 64 casillas para 512 núcleos de GPU.</p></div>
+    </div>
+    <details>
+      <summary>Supuestos de la simulación</summary>
+      <ul>
+        <li>Cada multiplicación-suma tarda 1 ciclo en un núcleo de CPU y 4 ciclos en un núcleo de GPU.</li>
+        <li>La GPU tiene 512 núcleos. Si hay más casillas que núcleos, calcula por ondas sucesivas.</li>
+        <li>Copiar datos a la GPU o de vuelta cuesta 40 ciclos de arranque más 1 ciclo por cada 8 números.</li>
+        <li>Es un modelo didáctico simplificado: las CPU y GPU reales tienen cachés, instrucciones vectoriales y miles de detalles más. <span id="hwNote"></span></li>
+      </ul>
+    </details>
+  </section>
+</div>
+
+<script>
+(() => {
+  const GPU_CORES = 512, GPU_OP = 4, LAT = 40, BW = 8;
+  const S = { N: 8, k: 4, copy: true, mul: 1, t: 0, playing: false, last: 0 };
+  let A = [], B = [], lanes = [];
+  const $ = id => document.getElementById(id);
+  const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  const fmt = v => Math.round(v).toLocaleString('es-CO');
+
+  function model(N, k, copy) {
+    const e = N * N;
+    const cin = copy ? LAT + Math.ceil(2 * e / BW) : 0;
+    const cout = copy ? LAT + Math.ceil(e / BW) : 0;
+    const comp = Math.ceil(e / GPU_CORES) * N * GPU_OP;
+    return { seq: e * N, cpu: Math.ceil(e / k) * N, gpu: cin + comp + cout, cin, comp, cout };
+  }
+
+  function seeded(seed) { let s = seed; return () => (s = (s * 16807) % 2147483647) / 2147483647; }
+  function makeMats() {
+    const r = seeded(S.N * 97 + 13), N = S.N;
+    A = Array.from({ length: N }, () => Array.from({ length: N }, () => Math.floor(r() * 10)));
+    B = Array.from({ length: N }, () => Array.from({ length: N }, () => Math.floor(r() * 10)));
+  }
+
+  // ---------- carriles ----------
+  function buildLanes() {
+    const m = model(S.N, S.k, S.copy);
+    lanes = [
+      { id: 'seq', name: '1 núcleo', spec: 'Secuencial · un núcleo rápido', how: 'Calcula una casilla, termina, y pasa a la siguiente.', cores: 1, op: 1, off: 0, total: m.seq, color: '--s1' },
+      { id: 'cpu', name: 'CPU', spec: `${S.k} núcleos rápidos`, how: `Cada núcleo toma una casilla: calcula ${S.k} casillas a la vez.`, cores: S.k, op: 1, off: 0, total: m.cpu, color: '--s2' },
+      { id: 'gpu', name: 'GPU', spec: `${GPU_CORES} núcleos sencillos`, how: (S.copy ? 'Primero copia A y B a su memoria. ' : '') + `Luego calcula hasta ${GPU_CORES} casillas a la vez, cada una 4 veces más lento que la CPU` + (S.copy ? ', y devuelve C.' : '.'), cores: GPU_CORES, op: GPU_OP, off: m.cin, comp: m.comp, total: m.gpu, color: '--s3', m }
+    ];
+    const box = $('lanes'); box.innerHTML = '';
+    lanes.forEach(L => {
+      const el = document.createElement('article');
+      el.className = 'lane'; el.style.setProperty('--c', `var(${L.color})`);
+      const coresHtml = L.id === 'gpu'
+        ? `<div class="gpu-cores"><canvas width="640" height="128"></canvas></div>`
+        : `<div class="cpu-cores">${Array.from({ length: L.cores }, (_, c) => `<div class="core"><span class="lbl">núcleo ${c}</span><span class="job">libre</span></div>`).join('')}</div>`;
+      el.innerHTML = `
+        <div class="lane-head"><div><h3>${L.name}</h3><div class="spec">${L.spec}</div></div><span class="badge">esperando</span></div>
+        <p class="how">${L.how}</p>
+        <div class="cores">${coresHtml}</div>
+        <div class="cgrid"><canvas width="560" height="560" aria-label="Matriz C calculada por ${L.name}"></canvas></div>
+        <div class="phase"></div>
+        <div class="bar"><i></i></div>
+        <div class="time"><span>Tiempo simulado</span><span><span class="mono t">0</span> / <span class="mono">${fmt(L.total)}</span> ciclos</span></div>`;
+      box.appendChild(el);
+      L.el = el; L.grid = el.querySelector('.cgrid canvas'); L.badge = el.querySelector('.badge');
+      L.phase = el.querySelector('.phase'); L.bar = el.querySelector('.bar i'); L.tEl = el.querySelector('.t');
+      L.coreEls = [...el.querySelectorAll('.core')]; L.gpuCanvas = el.querySelector('.gpu-cores canvas');
+    });
+  }
+
+  function elemState(L, e, t) {
+    const N = S.N, dur = N * L.op, w = Math.floor(e / L.cores);
+    const start = L.off + w * dur, end = start + dur;
+    if (t >= end) return 1;
+    if (t <= start) return 0;
+    return (t - start) / dur;
+  }
+
+  function drawGrid(L, t) {
+    const cv = L.grid, ctx = cv.getContext('2d'), N = S.N, W = cv.width;
+    const gap = N <= 4 ? 18 : N <= 8 ? 10 : N <= 16 ? 5 : 3, cell = (W - gap * (N + 1)) / N;
+    const col = css(L.color), soft = css('--soft'), ink = css('--ink'), line = css('--line');
+    ctx.clearRect(0, 0, W, W);
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.font = `600 ${Math.round(cell * 0.32)}px JetBrains Mono, monospace`;
+    for (let e = 0; e < N * N; e++) {
+      const i = Math.floor(e / N), j = e % N, x = gap + j * (cell + gap), y = gap + i * (cell + gap);
+      const p = elemState(L, e, t);
+      ctx.fillStyle = soft; ctx.fillRect(x, y, cell, cell);
+      if (N <= 16) { ctx.strokeStyle = line; ctx.lineWidth = 1.5; ctx.strokeRect(x + .75, y + .75, cell - 1.5, cell - 1.5); }
+      if (p > 0) {
+        ctx.globalAlpha = p >= 1 ? 1 : 0.25 + 0.5 * p;
+        ctx.fillStyle = col;
+        if (p >= 1) ctx.fillRect(x, y, cell, cell);
+        else ctx.fillRect(x, y + cell * (1 - p), cell, cell * p);
+        ctx.globalAlpha = 1;
+        if (p < 1) { ctx.strokeStyle = ink; ctx.lineWidth = N <= 8 ? 4 : 2; ctx.strokeRect(x + 2, y + 2, cell - 4, cell - 4); }
+      }
+      if (N <= 8 && p >= 1 && L.id === 'cpu') {
+        ctx.fillStyle = '#fff'; ctx.fillText(String(e % L.cores), x + cell / 2, y + cell / 2);
+      }
+    }
+    // GPU: mientras copia datos no puede calcular; lo mostramos sobre la matriz
+    if (L.id === 'gpu' && L.m.cin > 0 && t > 0) {
+      const m = L.m, inCopy = t < m.cin, outCopy = t >= m.cin + m.comp && t < L.total;
+      if (inCopy || outCopy) {
+        const frac = inCopy ? t / m.cin : (t - m.cin - m.comp) / m.cout;
+        ctx.globalAlpha = 0.94; ctx.fillStyle = css('--panel'); ctx.fillRect(0, W * 0.28, W, W * 0.46); ctx.globalAlpha = 1;
+        ctx.strokeStyle = col; ctx.lineWidth = 3; ctx.strokeRect(1.5, W * 0.28, W - 3, W * 0.46);
+        ctx.fillStyle = ink; ctx.font = `700 ${Math.round(W * 0.055)}px Atkinson Hyperlegible, sans-serif`;
+        ctx.fillText(inCopy ? 'Copiando A y B' : 'Devolviendo C', W / 2, W * 0.38);
+        ctx.font = `400 ${Math.round(W * 0.042)}px Atkinson Hyperlegible, sans-serif`;
+        ctx.fillText(inCopy ? 'RAM de la CPU → memoria de la GPU' : 'memoria de la GPU → RAM de la CPU', W / 2, W * 0.47);
+        const bw = W * 0.64, bx = (W - bw) / 2, by = W * 0.55, bh = W * 0.04;
+        ctx.fillStyle = soft; ctx.fillRect(bx, by, bw, bh);
+        ctx.fillStyle = col; ctx.fillRect(bx, by, bw * frac, bh);
+        ctx.fillStyle = css('--muted');
+        ctx.fillText(inCopy ? 'todavía no puede calcular' : 'el cálculo ya terminó', W / 2, W * 0.68);
+      }
+    }
+  }
+
+  function drawGpuCores(L, t, busyCount) {
+    const cv = L.gpuCanvas, ctx = cv.getContext('2d'), cols = 64, rows = 8;
+    const g = 2, w = (cv.width - g * (cols - 1)) / cols, h = (cv.height - g * (rows - 1)) / rows;
+    const col = css(L.color), soft = css('--soft');
+    ctx.clearRect(0, 0, cv.width, cv.height);
+    for (let c = 0; c < GPU_CORES; c++) {
+      const x = (c % cols) * (w + g), y = Math.floor(c / cols) * (h + g);
+      ctx.fillStyle = c < busyCount ? col : soft;
+      ctx.fillRect(x, y, w, h);
+    }
+  }
+
+  function updateLane(L, t) {
+    const N = S.N, E = N * N, dur = N * L.op, tt = Math.min(t, L.total);
+    drawGrid(L, tt);
+    const done = tt >= L.total;
+    L.bar.style.width = (100 * tt / L.total) + '%';
+    L.tEl.textContent = fmt(tt);
+    if (L.id === 'gpu') {
+      const m = L.m; let busy = 0, txt;
+      if (tt < m.cin) txt = `<b>Copiando A y B</b> a la memoria de la GPU… ${Math.round(100 * tt / m.cin)}%`;
+      else if (tt < m.cin + m.comp) {
+        const w = Math.floor((tt - m.cin) / dur), waves = Math.ceil(E / GPU_CORES);
+        busy = Math.min(GPU_CORES, E - w * GPU_CORES);
+        txt = `<b>Calculando</b> onda ${w + 1} de ${waves} · núcleos ocupados <span class="mono">${busy}/${GPU_CORES}</span>`;
+      } else if (!done) txt = `<b>Copiando C</b> de vuelta a la CPU… ${Math.round(100 * (tt - m.cin - m.comp) / m.cout)}%`;
+      else txt = `<b>Terminado.</b> Calculó hasta ${Math.min(E, GPU_CORES)} casillas a la vez.`;
+      drawGpuCores(L, tt, busy);
+      L.phase.innerHTML = txt;
+    } else {
+      const w = Math.floor(tt / dur);
+      L.coreEls.forEach((el, c) => {
+        const e = w * L.cores + c, busy = !done && e < E;
+        el.classList.toggle('busy', busy);
+        el.querySelector('.job').textContent = busy ? `C[${Math.floor(e / N)}][${e % N}]` : (done ? 'listo' : 'libre');
+      });
+      const finished = Math.min(E, w * L.cores);
+      L.phase.innerHTML = done
+        ? `<b>Terminado.</b> ${L.cores === 1 ? 'Calculó las casillas una por una.' : `Repartió las casillas entre ${L.cores} núcleos.`}`
+        : `Casillas listas: <span class="mono">${finished}/${E}</span>${L.cores > 1 ? ` · ${L.cores} a la vez` : ' · una a la vez'}`;
+    }
+  }
+
+  // ---------- zoom de la tarea ----------
+  function drawMat(cv, M, hiRow, hiCol, step) {
+    const ctx = cv.getContext('2d'), N = S.N, W = cv.width;
+    const gap = N <= 8 ? 3 : 1, cell = (W - gap * (N + 1)) / N;
+    const soft = css('--soft'), ink = css('--ink'), hl = css('--hl-strong'), muted = css('--muted');
+    ctx.clearRect(0, 0, W, W);
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.font = `600 ${Math.round(cell * 0.45)}px JetBrains Mono, monospace`;
+    for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) {
+      const x = gap + j * (cell + gap), y = gap + i * (cell + gap);
+      const inLine = (hiRow !== null && i === hiRow) || (hiCol !== null && j === hiCol);
+      const idx = hiRow !== null ? j : i;
+      ctx.fillStyle = soft; ctx.fillRect(x, y, cell, cell);
+      if (inLine) {
+        ctx.globalAlpha = idx < step ? 0.9 : 0.35; ctx.fillStyle = hl; ctx.fillRect(x, y, cell, cell); ctx.globalAlpha = 1;
+      }
+      if (N <= 8) { ctx.fillStyle = inLine ? ink : muted; ctx.fillText(M[i][j], x + cell / 2, y + cell / 2); }
+    }
+  }
+
+  function updateTask(t) {
+    const N = S.N, L = lanes[0], tt = Math.min(t, L.total - 0.0001);
+    const e = Math.max(0, Math.min(N * N - 1, Math.floor(tt / N))), i = Math.floor(e / N), j = e % N;
+    let step = t <= 0 ? 0 : Math.min(N, Math.floor(tt - e * N) + 1);
+    if (t >= L.total) step = N;
+    drawMat($('cA'), A, i, null, step); drawMat($('cB'), B, null, j, step);
+    let sum = 0; for (let m = 0; m < step; m++) sum += A[i][m] * B[m][j];
+    const f = $('formula');
+    if (N <= 8) {
+      const terms = Array.from({ length: N }, (_, m) => `<span class="${m < step ? '' : 'pend'}">${A[i][m]}·${B[m][j]}</span>`).join(' + ');
+      f.innerHTML = `C[${i}][${j}] = ${terms} = <b>${step === N ? sum : sum + '…'}</b>`;
+    } else {
+      f.innerHTML = `C[${i}][${j}] = Σ de ${N} productos · van <b>${step}/${N}</b> · suma parcial = <b>${sum}</b>`;
+    }
+  }
+
+  // ---------- veredicto ----------
+  function updateVerdict(t) {
+    const fin = lanes.filter(L => t >= L.total).sort((a, b) => a.total - b.total);
+    const order = [...lanes].sort((a, b) => a.total - b.total);
+    lanes.forEach(L => {
+      const pos = order.indexOf(L) + 1, done = t >= L.total;
+      L.badge.textContent = done ? `${pos}º lugar` : (t > 0 ? 'calculando' : 'esperando');
+      L.badge.classList.toggle('win', done && pos === 1);
+    });
+    if (t <= 0) { $('verdict').innerHTML = 'Pulsa <b>Iniciar</b> para comenzar la carrera.'; return; }
+    if (fin.length < 3) {
+      $('verdict').innerHTML = fin.length ? `Llegó primero: <b>${fin[0].name}</b> con ${fmt(fin[0].total)} ciclos. Los demás siguen calculando…` : 'Carrera en curso…';
+      return;
+    }
+    const g = order[0], gpu = lanes[2];
+    let why;
+    if (g.id === 'gpu') why = `Con ${S.N * S.N} casillas, los ${GPU_CORES} núcleos de la GPU compensan su lentitud individual y el costo de copiar datos.`;
+    else if (S.copy && gpu.m.cin + gpu.m.cout > gpu.m.comp) why = `La GPU gastó ${fmt(gpu.m.cin + gpu.m.cout)} de sus ${fmt(gpu.total)} ciclos solo copiando datos: con matrices pequeñas la copia pesa más que el cálculo.`;
+    else why = `Con pocas casillas, los núcleos rápidos de la CPU ganan: la GPU deja la mayoría de sus núcleos ociosos.`;
+    const others = order.slice(1).map(o => `${(o.total / g.total).toFixed(1)}× más rápido que ${o.id === 'seq' ? '1 núcleo' : 'la ' + o.name}`);
+    $('verdict').innerHTML = `<b>Ganó ${g.id === 'gpu' ? 'la GPU' : 'la CPU'}</b>: fue ${others.join(' y ')}. ${why}` + (S.exp ? `<span class="concl">Conclusión del experimento ${S.exp}: ${EXPS[S.exp].concl}</span>` : '');
+  }
+
+  // ---------- curva de escalado ----------
+  const CH = { W: 680, H: 300, l: 58, r: 74, t: 12, b: 36 };
+  const Ns = []; for (let n = 2; n <= 64; n++) Ns.push(n); for (let n = 68; n <= 2048; n += 4) Ns.push(n);
+  const xS = n => CH.l + (Math.log2(n) - 1) / 10 * (CH.W - CH.l - CH.r);
+  const yS = v => CH.t + (1 - (Math.log10(v) - 0.5) / 10) * (CH.H - CH.t - CH.b);
+  let series = [];
+  function crossover() { for (const n of Ns) { const m = model(n, S.k, S.copy); if (m.gpu < m.cpu) return n; } return null; }
+
+  function drawChart() {
+    const svg = $('chart'), keys = [['seq', '1 núcleo', '--s1'], ['cpu', `CPU (${S.k} núcleos)`, '--s2'], ['gpu', 'GPU', '--s3']];
+    series = keys.map(([k, name, c]) => ({ k, name, c, pts: Ns.map(n => [n, model(n, S.k, S.copy)[k]]) }));
+    let s = '<g class="grid">';
+    [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].forEach(p => { const y = yS(10 ** p); if (y >= CH.t - 1) s += `<line x1="${CH.l}" x2="${CH.W - CH.r}" y1="${y}" y2="${y}"/>`; });
+    s += '</g><g class="axis">';
+    [2, 8, 32, 128, 512, 2048].forEach(n => s += `<text x="${xS(n)}" y="${CH.H - CH.b + 18}" text-anchor="middle">${n}</text>`);
+    const sup = { 2: '10²', 4: '10⁴', 6: '10⁶', 8: '10⁸', 10: '10¹⁰' };
+    [2, 4, 6, 8, 10].forEach(p => s += `<text x="${CH.l - 8}" y="${yS(10 ** p) + 4}" text-anchor="end">${sup[p]}</text>`);
+    s += `<text x="${(CH.l + CH.W - CH.r) / 2}" y="${CH.H - 4}" text-anchor="middle">N (tamaño de la matriz, escala log)</text>`;
+    s += `<text transform="translate(12 ${(CH.t + CH.H - CH.b) / 2}) rotate(-90)" text-anchor="middle">ciclos (log)</text></g>`;
+    const cx = xS(S.N);
+    s += `<line x1="${cx}" x2="${cx}" y1="${CH.t}" y2="${CH.H - CH.b}" stroke="var(--ink)" stroke-dasharray="3 4" stroke-width="1"/>`;
+    s += `<text x="${cx + 5}" y="${CH.t + 12}" fill="var(--ink)" style="font:600 11px var(--f-mono)">N = ${S.N} (carrera)</text>`;
+    series.forEach(se => {
+      const d = se.pts.map(([n, v], i) => `${i ? 'L' : 'M'}${xS(n).toFixed(1)},${yS(v).toFixed(1)}`).join('');
+      s += `<path d="${d}" fill="none" stroke="var(${se.c})" stroke-width="2" stroke-linejoin="round"/>`;
+      const last = se.pts[se.pts.length - 1];
+      s += `<text x="${xS(last[0]) + 6}" y="${yS(last[1]) + 4}" fill="var(--ink)" style="font:600 11px var(--f-body)">${se.k === 'seq' ? '1 núcleo' : se.k === 'cpu' ? 'CPU' : 'GPU'}</text>`;
+      const m = model(S.N, S.k, S.copy)[se.k];
+      s += `<circle cx="${cx}" cy="${yS(m)}" r="5" fill="var(${se.c})" stroke="var(--panel)" stroke-width="2"/>`;
+    });
+    const xo = crossover();
+    if (xo) {
+      const v = model(xo, S.k, S.copy).gpu;
+      s += `<circle cx="${xS(xo)}" cy="${yS(v)}" r="9" fill="none" stroke="var(--ink)" stroke-width="1.5"/>`;
+    }
+    s += `<line id="xh" y1="${CH.t}" y2="${CH.H - CH.b}" stroke="var(--muted)" stroke-width="1" visibility="hidden"/>`;
+    s += `<rect x="${CH.l}" y="${CH.t}" width="${CH.W - CH.l - CH.r}" height="${CH.H - CH.t - CH.b}" fill="transparent" id="hit"/>`;
+    svg.innerHTML = s;
+    $('legend').innerHTML = series.map(se => `<span style="--c:var(${se.c})"><i></i>${se.name}</span>`).join('') + (xo ? '<span>○ la GPU empieza a ganar</span>' : '');
+    $('chartNote').innerHTML = xo
+      ? `Según este modelo, la GPU supera a la CPU de ${S.k} núcleos a partir de <b class="mono">N = ${xo}</b>${S.copy ? ' (contando la copia de datos)' : ''}. Por debajo de ese tamaño conviene la CPU. Cambia los controles y observa cómo se mueve el cruce.`
+      : 'En este rango la GPU no alcanza a la CPU.';
+    const hit = $('hit'), tip = $('tip'), xh = $('xh');
+    hit.addEventListener('pointermove', ev => {
+      const r = svg.getBoundingClientRect(), sx = (ev.clientX - r.left) * CH.W / r.width;
+      const n = Ns.reduce((a, b) => Math.abs(xS(b) - sx) < Math.abs(xS(a) - sx) ? b : a);
+      xh.setAttribute('x1', xS(n)); xh.setAttribute('x2', xS(n)); xh.setAttribute('visibility', 'visible');
+      const m = model(n, S.k, S.copy);
+      tip.innerHTML = `<b class="mono">N = ${n}</b>` + series.map(se => `<div><span><i style="--c:var(${se.c})"></i>${se.name}</span><span class="mono">${fmt(m[se.k])}</span></div>`).join('');
+      tip.hidden = false;
+      const box = svg.parentElement.getBoundingClientRect(), px = ev.clientX - box.left, py = ev.clientY - box.top;
+      tip.style.left = Math.min(px + 14, box.width - tip.offsetWidth - 8) + 'px';
+      tip.style.top = (py + 14) + 'px';
+    });
+    hit.addEventListener('pointerleave', () => { tip.hidden = true; xh.setAttribute('visibility', 'hidden'); });
+  }
+
+  // ---------- bucle ----------
+  const maxT = () => Math.max(...lanes.map(L => L.total));
+  // Velocidad a ×1: el más rápido tarda al menos ~3 s y la carrera completa como máximo ~50 s
+  const baseRate = () => {
+    const ts = lanes.map(L => L.total), mx = Math.max(...ts), mn = Math.min(...ts);
+    return Math.max(mx / 50, Math.min(mx / 15, mn / 3));
+  };
+  function render() { lanes.forEach(L => updateLane(L, S.t)); updateTask(S.t); updateVerdict(S.t); }
+  function frame(ts) {
+    if (!S.playing) return;
+    const dt = Math.max(0, Math.min(0.1, (ts - S.last) / 1000)); S.last = Math.max(S.last, ts);
+    S.t = Math.max(0, Math.min(maxT(), S.t + dt * baseRate() * S.mul));
+    try { render(); } catch (err) { console.error(err); }
+    if (S.t >= maxT()) { S.playing = false; $('play').textContent = 'Iniciar'; return; }
+    requestAnimationFrame(frame);
+  }
+  function play() {
+    if (S.playing) { S.playing = false; $('play').textContent = 'Continuar'; return; }
+    if (S.t >= maxT()) S.t = 0;
+    S.playing = true; S.last = performance.now(); $('play').textContent = 'Pausar';
+    requestAnimationFrame(frame);
+  }
+  function reset() {
+    S.playing = false; S.t = 0; $('play').textContent = 'Iniciar'; S.exp = null;
+    [...$('exps').children].forEach(x => x.setAttribute('aria-pressed', 'false'));
+    makeMats(); buildLanes(); drawChart(); render();
+    $('nTasks').textContent = S.N * S.N;
+  }
+
+  const EXPS = {
+    1: { N: 4, k: 4, copy: true, concl: 'Con poco trabajo gana la CPU. La GPU pasa casi todo su tiempo copiando datos y deja ociosos casi todos sus núcleos.' },
+    2: { N: 32, k: 4, copy: true, concl: 'Con mucho trabajo gana la GPU. Sus núcleos son más lentos, pero son tantos que terminan mucho antes.' },
+    3: { N: 8, k: 4, copy: false, concl: 'Sin el costo de la copia, la GPU gana incluso con una matriz pequeña. La copia de memoria es el precio oculto de usar GPU.' }
+  };
+  function setSeg(id, v) { [...$(id).children].forEach(x => x.setAttribute('aria-pressed', +x.dataset.v === v)); }
+  $('exps').addEventListener('click', e => {
+    const b = e.target.closest('.exp'); if (!b) return;
+    const X = EXPS[b.dataset.exp];
+    S.N = X.N; S.k = X.k; S.copy = X.copy; $('copy').checked = X.copy;
+    setSeg('segN', X.N); setSeg('segK', X.k);
+    reset(); S.exp = b.dataset.exp;
+    [...$('exps').children].forEach(x => x.setAttribute('aria-pressed', x === b));
+    document.getElementById('lanes').scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
+    $('verdict').innerHTML = 'Preparando la carrera…';
+    setTimeout(() => { if (S.exp === b.dataset.exp && !S.playing && S.t === 0) play(); }, 800);
+  });
+  function seg(id, key) {
+    $(id).addEventListener('click', e => {
+      const b = e.target.closest('button'); if (!b) return;
+      [...$(id).children].forEach(x => x.setAttribute('aria-pressed', x === b));
+      S[key] = +b.dataset.v; reset();
+    });
+  }
+  seg('segN', 'N'); seg('segK', 'k');
+  [...$('segK').children].forEach(x => { if (!x.hasAttribute('aria-pressed')) x.setAttribute('aria-pressed', 'false'); });
+  [...$('segN').children].forEach(x => { if (!x.hasAttribute('aria-pressed')) x.setAttribute('aria-pressed', 'false'); });
+  $('speed').addEventListener('input', e => { S.mul = 2 ** (+e.target.value - 2); $('speedLbl').textContent = '×' + (S.mul < 1 ? S.mul : S.mul.toFixed(0)); });
+  $('copy').addEventListener('change', e => { S.copy = e.target.checked; reset(); });
+  $('play').addEventListener('click', play);
+  $('reset').addEventListener('click', reset);
+  $('finish').addEventListener('click', () => { S.playing = false; S.t = maxT(); $('play').textContent = 'Iniciar'; render(); });
+  matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', () => { drawChart(); render(); });
+  new MutationObserver(() => { drawChart(); render(); }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  const hw = navigator.hardwareConcurrency;
+  if (hw) $('hwNote').textContent = `Como referencia, tu navegador reporta ${hw} núcleos lógicos en este equipo.`;
+
+  reset();
+})();
+</script>
